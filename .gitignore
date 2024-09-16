@@ -1,5 +1,9 @@
-sample/
-
+sample/*
+!sample/.gitignore
+result/*
+!result/.gitignore
+*.tif
+*.bmp
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

@@ -59,7 +59,7 @@ if __name__ == "__main__":
     a3_image = create_a3_image()
 
     # グリッド線の画像を作成
-    rotate = 10
+    rotate = -1
     grid_size_mm = 10
     grid_image = create_grid_image(
         image_size=(215.5, 279.4), dpi=1200, grid_size_mm=grid_size_mm, margin_mm=None, rotate=rotate
@@ -69,7 +69,7 @@ if __name__ == "__main__":
     a3_image.paste(grid_image, (100, 100))
 
     # 画像を保存
-    save_path = "a3_image" + f"_g{grid_size_mm}_r{rotate}" + ".bmp"
+    save_path = r"sample\a3_image" + f"_g{grid_size_mm}_r{rotate}" + ".bmp"
     a3_image.save(save_path, format="BMP")
 
     # # 画像を表示

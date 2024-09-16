@@ -10,10 +10,11 @@ from pathlib import Path
 
 from sklearn.linear_model import LinearRegression
 from scipy import stats
-import warnings
 
 import numpy as np
 from scipy import stats
+
+import time
 
 
 def check_dpi(image: np.ndarray) -> int:
@@ -139,6 +140,27 @@ def extract_edges(
             line = np.polyfit(x_coords, y_coords, 1)
             lines.append(line)
 
+    # l_coords = remove_outliers_linear(l_coords)
+    # r_coords = remove_outliers_linear(r_coords)
+    # t_coords = remove_outliers_linear(t_coords)
+    # b_coords = remove_outliers_linear(b_coords)
+
+    # # 最小二乗法で直線を求める
+    # x_l_coords, y_l_coords = zip(*l_coords)
+    # l_line = np.polyfit(x_l_coords, y_l_coords, 1)
+
+    # x_r_coords, y_r_coords = zip(*r_coords)
+    # r_line = np.polyfit(x_r_coords, y_r_coords, 1)
+
+    # x_t_coords, y_t_coords = zip(*t_coords)
+    # t_line = np.polyfit(x_t_coords, y_t_coords, 1)
+
+    # x_b_coords, y_b_coords = zip(*b_coords)
+    # b_line = np.polyfit(x_b_coords, y_b_coords, 1)
+
+    # lines = [l_line, r_line, t_line, b_line]
+    # coords = [l_coords, r_coords, t_coords, b_coords]
+
     return lines, coords
 
 
@@ -161,13 +183,7 @@ def calc_angle(lines: list[np.ndarray | int]) -> float:
 
     l_angle = np.rad2deg(np.arctan(l_line[0]))
 
-    # pillowのrotate(デフォルトがcounter-clockwise)で回転させる際の角度を返す
-    if l_angle > 0:
-        l_angle -= 90
-        return np.abs(l_angle)
-    else:
-        l_angle += 90
-        return -l_angle
+    return l_angle
 
 
 def line_intersection(line1: int | np.ndarray, line2: int | np.ndarray) -> tuple[int, int] | None:
@@ -294,43 +310,64 @@ def save_process_image(image: np.ndarray, lines: list[np.ndarray | int], coords:
 
 if __name__ == "__main__":
     # 画像の読み込み
-    image_paths = Path.glob(Path.cwd() / Path("sample"), "*.bmp")
-    # image_paths = [Path(r"sample\a3_image_g10_r1.bmp")]
+    # image_paths = Path.glob(Path.cwd() / Path("sample"), "*.bmp")
+    image_paths = [Path(r"sample\a3_image_g10_r1.bmp")]
     for image_path in image_paths:
+        start_time = time.time()
         image = cv2.imread(str(image_path))
+        end_time = time.time()
+        print(f"画像読み込み時間: {end_time - start_time:.4f}秒")
 
         # 縦長画像の場合に左に90°回転
+        start_time = time.time()
         height, width, _ = image.shape
         if height > width:
             image = cv2.rotate(image, cv2.ROTATE_90_COUNTERCLOCKWISE)
+        end_time = time.time()
+        print(f"画像回転時間: {end_time - start_time:.4f}秒")
 
         image_gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
         # 解像度の情報取得
         dpi = check_dpi(image_gray)
 
         # 稜線の検出
+        start_time = time.time()
         lines, coords = extract_edges(image_gray, 10, 10, 70)
+        end_time = time.time()
+        print(f"稜線検出時間: {end_time - start_time:.4f}秒")
 
         # 傾きを求める
+        start_time = time.time()
         angle = calc_angle(lines)
-        print(angle)
+        end_time = time.time()
+        print(f"傾き計算時間: {end_time - start_time:.4f}秒")
 
         # 切り取り領域の計算
+        start_time = time.time()
         crop_area = calc_crop_area(lines, image_gray.shape)
         if crop_area is None:
             crop_area = (0, 0, width, height)
+        end_time = time.time()
+        print(f"切り取り領域計算時間: {end_time - start_time:.4f}秒")
 
         # 切り取り領域が存在する場合は画像を切り取る
+        start_time = time.time()
         if crop_area is not None:
             cropped_image = crop_image(image, crop_area)
         else:
             print("切り取り領域が存在しません")
+        end_time = time.time()
+        print(f"画像切り取り時間: {end_time - start_time:.4f}秒")
 
         # 画像の保存
-        save_path = Path("result") / Path(image_path.stem + "_cropped.tif")
+        start_time = time.time()
+        save_path = image_path.stem + "_cropped.tif"
         image_pil = Image.fromarray(cropped_image)
         image_pil.save(save_path, dpi=dpi, format="TIFF")
+        end_time = time.time()
+        print(f"画像保存時間: {end_time - start_time:.4f}秒")
 
-        # 切り取り領域がうまく取得できなかった場合に処理画像を保存
-        if crop_area is None:
-            save_process_image(image, lines, coords)
+        start_time = time.time()
+        save_process_image(image, lines, coords)
+        end_time = time.time()
+        print(f"処理結果保存時間: {end_time - start_time:.4f}秒")
